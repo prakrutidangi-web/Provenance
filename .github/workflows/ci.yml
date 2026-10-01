@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: koah
+          POSTGRES_PASSWORD: koah
+          POSTGRES_DB: koah_attribution
+        ports: ["55432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U koah"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      CI: "true"
+      DATABASE_URL: postgres://koah:koah@localhost:55432/koah_attribution
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: "**/package-lock.json"
+
+      - name: Install
+        run: |
+          npm ci
+          npm --prefix pixel ci
+          npm --prefix server ci
+          npm --prefix web ci
+
+      - name: Build pixel
+        run: npm run build:pixel
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit + integration tests (real Postgres)
+        run: npm run test:server
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: End-to-end tests
+        run: npm run test:e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: test-results/

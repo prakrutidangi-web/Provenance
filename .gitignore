@@ -1,0 +1,14 @@
+
+*.zip
+.DS_Store
+.agents
+.env
+.sync.zip
+dist
+node_modules
+photos-original
+playwright-report
+server/public/pixel.js
+server/public/pixel.js.map
+skills-lock.json
+test-results

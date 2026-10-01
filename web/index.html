@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#faf8f5" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@1&display=swap" />
+    <meta name="description" content="Video courses for engineers building with AI: RAG, agents, evals and the systems underneath them." />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Kernelcraft · Courses for engineers building with AI</title>
+
+    <!-- Koah-style conversion pixel. The stub queues kad() calls until /pixel.js loads (async, non-blocking). -->
+    <script>
+      !(function (w, d) {
+        if (!w.kad) {
+          var p = (w.kad = function () {
+            p.sendEvent ? p.sendEvent.apply(p, arguments) : p.queue.push(arguments);
+          });
+          p.queue = [];
+          var t = d.createElement("script");
+          t.src = "/pixel.js";
+          t.async = !0;
+          var s = d.getElementsByTagName("script")[0];
+          s.parentNode.insertBefore(t, s);
+        }
+      })(window, document);
+      // spa: also track client-side route changes. ignorePaths: internal pages and the demo publisher (/chat) are not store traffic.
+      kad("init", "adv_kernelcraft", { spa: true, ignorePaths: ["/admin", "/chat"] });
+      kad("track", "PageView");
+    </script>
+  </head>
+  <body>
+    <noscript><img height="1" width="1" style="display: none" src="/kad/e?id=adv_kernelcraft&ev=PageView&noscript=1" /></noscript>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
