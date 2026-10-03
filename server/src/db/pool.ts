@@ -5,7 +5,12 @@ import { config } from "../config.js";
 pg.types.setTypeParser(pg.types.builtins.INT8, (v) => Number(v));
 pg.types.setTypeParser(pg.types.builtins.NUMERIC, (v) => Number(v));
 
-export const pool = new pg.Pool({ connectionString: config.databaseUrl, max: 10 });
+export const pool = new pg.Pool({
+  connectionString: config.databaseUrl,
+  max: 10,
+  // Managed Postgres over a public URL needs TLS; set DATABASE_SSL=1 for that.
+  ssl: process.env.DATABASE_SSL === "1" ? { rejectUnauthorized: false } : undefined,
+});
 
 /** Runs fn inside a transaction on a single connection. */
 export async function withTransaction<T>(fn: (client: pg.PoolClient) => Promise<T>): Promise<T> {

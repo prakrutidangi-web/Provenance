@@ -210,7 +210,10 @@ analyticsRouter.get("/api/events", async (req, res) => {
 });
 
 /** Demo helper: wipe all tracking data and orders. */
+analyticsRouter.get("/api/config", (_req, res) => res.json({ resetEnabled: config.resetEnabled }));
+
 analyticsRouter.delete("/api/admin/data", async (_req, res) => {
+  if (!config.resetEnabled) return res.status(403).json({ error: "reset_disabled" });
   await pool.query("TRUNCATE raw_events, touches, conversions, orders");
   res.status(204).end();
 });

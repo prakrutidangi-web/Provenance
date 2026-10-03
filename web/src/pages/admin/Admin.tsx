@@ -113,6 +113,7 @@ export default function Admin() {
   const metric = (METRICS.some((m) => m.id === params.get("metric")) ? params.get("metric") : "sessions") as Metric;
   const view = (TABS.some((t) => t.id === params.get("view")) ? params.get("view") : "funnel") as TabId;
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [resetEnabled, setResetEnabled] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -154,6 +155,10 @@ export default function Admin() {
   useEffect(() => {
     void load();
   }, [load, refreshKey]);
+
+  useEffect(() => {
+    api.config().then((c) => setResetEnabled(c.resetEnabled)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!autoRefresh) return;
@@ -201,7 +206,7 @@ export default function Admin() {
           <label className="check">
             <input type="checkbox" checked={autoRefresh} onChange={(e) => setAutoRefresh(e.target.checked)} /> Live
           </label>
-          {confirmReset ? (
+          {!resetEnabled ? null : confirmReset ? (
             <span className="confirm" role="group" aria-label="Confirm reset">
               Delete all data?
               <button className="link-danger" onClick={reset}>Yes, delete</button>

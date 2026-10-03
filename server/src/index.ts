@@ -6,10 +6,19 @@ import { logger } from "./lib/logger.js";
 
 await migrate((msg) => logger.info(msg));
 
+if (config.autoSeed) {
+  const { rows } = await pool.query("SELECT count(*)::int AS n FROM raw_events");
+  if (rows[0].n === 0) {
+    logger.info("Empty database: loading demo data");
+    const { seedDemoData } = await import("./seed.js");
+    await seedDemoData();
+  }
+}
+
 // Bind to 127.0.0.1 explicitly: if another app already owns the port we get a
 // clear EADDRINUSE error instead of two servers silently sharing "localhost".
 const server = createApp()
-  .listen(config.port, "127.0.0.1", () => logger.info(`API listening on http://127.0.0.1:${config.port}`))
+  .listen(config.port, config.host, () => logger.info(`API listening on http://${config.host}:${config.port}`))
   .on("error", (err) => {
     logger.fatal(`Could not start API on port ${config.port}: ${err.message}`);
     process.exit(1);

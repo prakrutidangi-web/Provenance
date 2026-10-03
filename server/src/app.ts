@@ -18,7 +18,8 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 export function createApp() {
   const app = express();
   app.disable("x-powered-by");
-  app.set("trust proxy", "loopback"); // so req.ip is the real client behind the Vite dev proxy
+  // req.ip must be the real client: behind the Vite dev proxy locally, behind the host's load balancer when deployed.
+  app.set("trust proxy", process.env.TRUST_PROXY === "1" ? 1 : "loopback");
 
   app.use(
     pinoHttp({

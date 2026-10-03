@@ -13,13 +13,14 @@
  *  - some crawler traffic (stored, flagged, excluded)
  */
 import { randomUUID } from "node:crypto";
+import { pathToFileURL } from "node:url";
 import { pool } from "./db/pool.js";
 import { migrate } from "./db/migrate.js";
 import { PRODUCTS, CURRENCY } from "./domain/catalog.js";
 import { ingest, type IncomingEvent } from "./ingest/service.js";
 import type { EventName, TouchInput } from "./ingest/schemas.js";
 
-const SHOP = "http://localhost:5180";
+const SHOP = process.env.PUBLIC_URL ?? "http://localhost:5180";
 const COURSES = PRODUCTS; // includes the All-Access plan
 const ADV = "adv_kernelcraft";
 const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36";
@@ -109,7 +110,7 @@ function adTouch(source: Src): TouchInput {
   };
 }
 
-async function main() {
+export async function seedDemoData() {
   await migrate(() => {});
   await pool.query("TRUNCATE raw_events, touches, conversions, orders");
   const journeys: Journey[] = [];
@@ -155,10 +156,14 @@ async function main() {
   }
   const { rows } = await pool.query("SELECT count(*)::int AS n FROM conversions");
   console.log(`Seeded ${journeys.length} users, ${count + bots.length} events, ${rows[0].n} purchases.`);
-  await pool.end();
 }
 
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+// Run directly (`npm run seed`); importing this file from the server does nothing.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  seedDemoData()
+    .then(() => pool.end())
+    .catch((err) => {
+      console.error(err);
+      process.exit(1);
+    });
+}

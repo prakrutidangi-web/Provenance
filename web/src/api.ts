@@ -120,6 +120,7 @@ const qs = (q: object) =>
 
 export const api = {
   catalog: () => request<Catalog>("/api/catalog"),
+  config: () => request<{ resetEnabled: boolean }>("/api/config"),
   createOrder: (items: { product_id: string }[]) =>
     request<Order>("/api/orders", {
       method: "POST",
