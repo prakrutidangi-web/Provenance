@@ -37,6 +37,10 @@ const summarize = (results: ItemResult[]) => ({
   duplicates: results.filter((r) => r.status === "duplicate").length,
   invalid: results.filter((r) => r.status === "invalid").length,
   results,
+  // Like Koah's API: a 200 does not mean every event was accepted, so failures are spelled out here too.
+  messages: results
+    .filter((r) => r.status === "invalid")
+    .map((r) => `events[${r.index}] was rejected: ${JSON.stringify(r.issues)}`),
 });
 
 // ---------------------------------------------------------------------------
@@ -153,6 +157,9 @@ ingestRouter.post("/api/v1/conversion_events", async (req, res) => {
   if (!advertiserId) return res.status(401).json({ error: "invalid_api_key" });
   const batch = ApiBatchSchema.safeParse(req.body);
   if (!batch.success) return res.status(400).json({ error: "invalid_batch", issues: batch.error.issues });
+  if (batch.data.advertiser_id && batch.data.advertiser_id !== advertiserId) {
+    return res.status(403).json({ error: "advertiser_mismatch" });
+  }
 
   const now = new Date();
   const results = await processBatch(batch.data.events, (raw) => ApiEventSchema.safeParse(raw), (e) => ({
@@ -163,7 +170,7 @@ ingestRouter.post("/api/v1/conversion_events", async (req, res) => {
     userId: e.user_id,
     tabId: null,
     touch: null,
-    clickId: e.click_id ?? null,
+    clickId: e.kad_cid ?? e.click_id ?? null,
     pageUrl: e.page_url ?? null,
     referrer: null,
     userAgent: null,

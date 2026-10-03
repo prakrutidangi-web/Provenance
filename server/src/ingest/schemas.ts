@@ -88,7 +88,8 @@ export const ApiEventSchema = z
     event_name: z.enum(EVENT_NAMES),
     event_id: str(64),
     user_id: str(128),
-    click_id: optStr(200),
+    kad_cid: optStr(200), // Koah's name for the click ID
+    click_id: optStr(200), // accepted as an alias
     event_time: z.string().datetime().optional(),
     page_url: optStr(2048),
     properties: PropertiesSchema.default({}),
@@ -96,5 +97,6 @@ export const ApiEventSchema = z
   .superRefine(purchaseNeedsValue);
 
 export const ApiBatchSchema = z.object({
+  advertiser_id: optStr(64),
   events: z.array(z.unknown()).min(1).max(100), // Koah's API accepts up to 100 events per request
 });
