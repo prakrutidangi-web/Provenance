@@ -22,9 +22,14 @@ export const CONVERSION_EVENTS: readonly EventName[] = ["Purchase"];
 const str = (max: number) => z.string().trim().min(1).max(max);
 const optStr = (max: number) => z.string().max(max).nullish();
 
+/** Koah truncates over-long values rather than rejecting the event; so do we. */
+const clip = (max: number) => z.string().trim().min(1).transform((s) => s.slice(0, max));
+const optClip = (max: number) => z.string().transform((s) => s.slice(0, max)).nullish();
+
 const ProductSchema = z.object({
-  id: str(100),
-  name: optStr(200),
+  id: clip(100),
+  name: optClip(255),
+  category: optClip(100),
   quantity: z.number().int().positive().max(1000).optional(),
   price: z.number().nonnegative().max(1_000_000).optional(),
 });
@@ -32,7 +37,7 @@ const ProductSchema = z.object({
 /** Event parameters (Koah-style: value is in major currency units, e.g. 12.5 = $12.50). */
 export const PropertiesSchema = z
   .object({
-    value: z.number().nonnegative().max(10_000_000).optional(),
+    value: z.number().positive().max(10_000_000).optional(), // Koah: a value, when present, must be greater than 0
     currency: z.string().length(3).toUpperCase().optional(),
     products: z.array(ProductSchema).max(100).optional(),
     itemCount: z.number().int().nonnegative().optional(),
@@ -64,7 +69,7 @@ const purchaseNeedsValue = (e: { event_name: string; properties?: { value?: numb
 export const PixelEventSchema = z
   .object({
     event_name: z.enum(EVENT_NAMES),
-    event_id: str(64),
+    event_id: clip(512), // Koah truncates event IDs longer than 512 characters
     tab_id: str(64),
     touch: TouchSchema.nullish(),
     page_url: z.string().max(2048),
@@ -86,7 +91,7 @@ export const PixelBatchSchema = z.object({
 export const ApiEventSchema = z
   .object({
     event_name: z.enum(EVENT_NAMES),
-    event_id: str(64),
+    event_id: clip(512), // Koah truncates event IDs longer than 512 characters
     user_id: str(128),
     kad_cid: optStr(200), // Koah's name for the click ID
     click_id: optStr(200), // accepted as an alias

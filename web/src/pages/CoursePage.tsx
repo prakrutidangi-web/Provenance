@@ -14,7 +14,7 @@ import { trackOnce } from "../trackOnce";
 export const productParams = (p: Product) => ({
   value: p.priceCents / 100,
   currency: "USD",
-  products: [{ id: p.id, name: p.name, quantity: 1, price: p.priceCents / 100 }],
+  products: [{ id: p.id, name: p.name, category: p.track, quantity: 1, price: p.priceCents / 100 }],
 });
 
 function CourseSkeleton() {
