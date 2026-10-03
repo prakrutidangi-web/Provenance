@@ -60,11 +60,10 @@ export default function Checkout() {
       <div className="checkout-main">
         <h1>Checkout</h1>
         <div className="testmode">
-          <strong>Demo checkout</strong> Nothing is charged and no card details are collected. Placing the order records a
-          purchase for the attribution demo.
+          <strong>Practice checkout.</strong> Nothing is charged and no card details are collected.
         </div>
         <label className="field" htmlFor="email">
-          <span>Email for your receipt (optional)</span>
+          <span>Email (optional)</span>
           <input
             id="email"
             name="email"
@@ -93,11 +92,10 @@ export default function Checkout() {
           </div>
         ))}
         <div className="sum-total"><span>Total</span><span>{formatPrice(total)}</span></div>
-        {error && <p className="error">{error}</p>}
-        <button className="btn btn-block" type="submit" disabled={placing} data-testid="checkout">
+        {error && <p className="error" role="alert">{error}</p>}
+        <button className="btn btn-sun btn-block" type="submit" disabled={placing} data-testid="checkout">
           {placing ? "Placing order…" : `Place order, ${formatPrice(total)}`}
         </button>
-        <p className="muted small center">Refunds within 30 days, no questions asked.</p>
       </aside>
     </form>
   );

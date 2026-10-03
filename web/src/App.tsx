@@ -9,6 +9,7 @@ import Checkout from "./pages/Checkout";
 import ThankYou from "./pages/ThankYou";
 import Chat from "./pages/chat/Chat";
 import Admin from "./pages/admin/Admin";
+import { Terms, Privacy } from "./pages/Legal";
 import { useCart } from "./cart";
 import { useCatalog } from "./catalog";
 
@@ -63,9 +64,7 @@ export function Logo() {
 function Header() {
   const count = useCart().length;
   const { catalog } = useCatalog();
-  const [params] = useSearchParams();
   const { pathname } = useLocation();
-  const activeTrack = pathname === "/courses" ? params.get("track") : null;
   return (
     <header className="header">
       <div className="header-row">
@@ -73,6 +72,7 @@ function Header() {
         <nav className="nav" aria-label="Main">
           <NavLink to="/courses" end>Explore</NavLink>
           <NavLink to="/pricing">All-Access</NavLink>
+          <NavLink to="/chat">Ask Penrose</NavLink>
         </nav>
         <SearchBox />
         <NavLink to="/checkout" className="cart-btn" data-testid="cart-link" aria-label={`Cart, ${count} ${count === 1 ? "item" : "items"}`}>
@@ -81,20 +81,38 @@ function Header() {
           {count > 0 && <span className="pill" data-testid="cart-count">{count}</span>}
         </NavLink>
       </div>
-      {/* Udemy-style category bar. */}
+      {/* Category bar: hidden on /courses, where the Category filter does the same job. */}
+      {pathname !== "/courses" && (
       <nav className="catbar" aria-label="Categories">
         <div className="catbar-row">
           {catalog?.tracks.map((t) => (
-            <Link key={t.id} to={`/courses?track=${t.id}`} className={activeTrack === t.id ? "on" : undefined}>{t.name}</Link>
+            <Link key={t.id} to={`/courses?track=${t.id}`}>{t.name}</Link>
           ))}
         </div>
       </nav>
+      )}
+    </header>
+  );
+}
+
+/** The dashboard is a tool, not part of the store, so it gets its own slim bar. */
+function AdminBar() {
+  return (
+    <header className="admin-bar">
+      <div className="admin-bar-row">
+        <Link to="/admin" className="logo" translate="no" aria-label="Provenance dashboard">
+          <span className="logo-mark" aria-hidden><i /><i /><i /><i /></span>
+          Provenance
+        </Link>
+        <nav aria-label="Demo apps">
+          <a href="/" target="_blank" rel="noopener">Kernelcraft store <span aria-hidden>↗</span></a>
+        </nav>
+      </div>
     </header>
   );
 }
 
 function Footer() {
-  const { catalog } = useCatalog();
   return (
     <footer className="site-footer">
       <div className="footer-cols">
@@ -102,19 +120,15 @@ function Footer() {
           <Logo />
           <p>Video courses for engineers building with AI.</p>
         </div>
-        <nav aria-label="Tracks">
-          <h4>Tracks</h4>
-          {catalog?.tracks.map((t) => <Link key={t.id} to={`/courses?track=${t.id}`}>{t.name}</Link>)}
-        </nav>
-        <nav aria-label="Kernelcraft">
-          <h4>Kernelcraft</h4>
-          <Link to="/courses">All courses</Link>
+        <nav className="footer-links" aria-label="Footer">
+          <Link to="/courses">Courses</Link>
           <Link to="/pricing">Pricing</Link>
-          <Link to="/checkout">Cart</Link>
-          <Link to="/admin">Attribution dashboard</Link>
+          <Link to="/chat">Ask Penrose</Link>
+          <Link to="/terms">Terms of Service</Link>
+          <Link to="/privacy">Privacy Policy</Link>
         </nav>
       </div>
-      <p className="footer-legal">Kernelcraft is a fictional company built for a Koah Labs take-home. No real purchases.</p>
+      <p className="footer-legal">Kernelcraft is a fictional practice store. Nothing is sold and no payment is taken.</p>
       <p className="footer-credits">
         Photos by Tim van der Kuip, Annie Spratt, Safar Safarov and Luca Bravo on{" "}
         <a href="https://unsplash.com" target="_blank" rel="noopener">Unsplash</a>.
@@ -131,7 +145,7 @@ export default function App() {
   return (
     <>
       <a href="#main" className="skip-link">Skip to content</a>
-      <Header />
+      {isAdmin ? <AdminBar /> : <Header />}
       <main id="main" className={isAdmin ? "container wide" : "container"}>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -141,6 +155,8 @@ export default function App() {
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/cart" element={<Checkout />} />
           <Route path="/thank-you" element={<ThankYou />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
           <Route path="/admin" element={<Admin />} />
           <Route
             path="*"

@@ -60,6 +60,7 @@ export interface TimeseriesRow {
   source: string;
   sessions: number;
   purchasers: number;
+  revenue_cents: number;
 }
 
 export interface ConversionRow {
@@ -131,7 +132,7 @@ export const api = {
   funnel: (q: RangeQuery) => request<FunnelData>(`/api/analytics/funnel?${qs(q)}`),
   timeseries: (q: RangeQuery) => request<TimeseriesRow[]>(`/api/analytics/timeseries?${qs(q)}`),
   conversions: (q: RangeQuery) => request<ConversionRow[]>(`/api/analytics/conversions?${qs(q)}`),
-  events: (q: { via?: string; name?: string; source?: string }) => request<RawEvent[]>(`/api/events?${qs(q)}`),
+  events: (q: { via?: string; name?: string; source?: string; tab?: string; limit?: number }) => request<RawEvent[]>(`/api/events?${qs(q)}`),
   resetData: () => fetch("/api/admin/data", { method: "DELETE" }),
 };
 

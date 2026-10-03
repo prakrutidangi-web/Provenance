@@ -22,8 +22,10 @@ async function summary(request: APIRequestContext, model = "tab") {
   return Object.fromEntries(rows.map((r) => [r.source, r])) as Record<string, Row>;
 }
 
-/** Home → course page → add to cart → checkout → place order. */
+/** Open the course from the catalog (client-side, so the tab keeps its ad), add it to the cart, check out. */
 async function buy(page: Page, courseId = "prompting-for-devs") {
+  await page.getByRole("link", { name: "Explore", exact: true }).click();
+  await expect(page).toHaveURL(/\/courses(\?|$)/);
   await page.getByTestId(`course-${courseId}`).first().click();
   await expect(page).toHaveURL(new RegExp(`/courses/${courseId}$`));
   await page.getByTestId("add-to-cart").click();
@@ -102,7 +104,7 @@ test("the dashboard shows the metrics and switches attribution models", async ({
   await expect(fb.locator("[data-col=sessions]")).toHaveText("1");
   await expect(fb.locator("[data-col=purchasers]")).toHaveText("0");
 
-  await page.getByTestId("model-picker").locator("[data-model=last_touch_7d]").click();
+  await page.getByTestId("model-picker").selectOption("last_touch_7d");
   await expect(fb.locator("[data-col=purchasers]")).toHaveText("1");
   await expect(fb.locator("[data-col=rate]")).toHaveText("100.0%");
 });

@@ -2,6 +2,16 @@ import { useEffect, useState } from "react";
 import { api, formatPrice, type RawEvent } from "../../api";
 import { SourceBadge, short } from "./tables";
 
+/** Show the path and query; the host is always the same demo origin, and the full URL stays in the tooltip. */
+const pathOf = (u: string) => {
+  try {
+    const x = new URL(u);
+    return x.pathname + x.search;
+  } catch {
+    return u;
+  }
+};
+
 const EVENT_NAMES = ["PageView", "ViewContent", "AddToCart", "InitiateCheckout", "Purchase"];
 
 /** The raw event log, exactly as received from the pixel and the Conversion API. */
@@ -19,9 +29,8 @@ export default function EventDebugger({ refreshKey }: { refreshKey: number }) {
   const shown = showBots ? events : events.filter((e) => !e.is_bot);
 
   return (
-    <section className="panel" id="event-debugger">
+    <div>
       <div className="panel-head">
-        <h2>Event debugger</h2>
         <div className="controls">
           <select value={via} onChange={(e) => setVia(e.target.value)} aria-label="Channel">
             <option value="">Pixel + API</option>
@@ -39,7 +48,7 @@ export default function EventDebugger({ refreshKey }: { refreshKey: number }) {
           <label className="check-inline"><input type="checkbox" checked={showBots} onChange={(e) => setShowBots(e.target.checked)} /> Show crawler traffic</label>
         </div>
       </div>
-      <div className="scroll tall">
+      <div className="scroll tall" tabIndex={0} role="region" aria-label="Scrollable table">
         <table className="table compact events" data-testid="events">
           <thead>
             <tr>
@@ -74,10 +83,10 @@ export default function EventDebugger({ refreshKey }: { refreshKey: number }) {
                     {e.campaign && <div className="muted small">{e.campaign}</div>}
                   </td>
                   <td>
-                    {product ?? "—"}
+                    {product ?? "none"}
                     {p.value !== undefined && <div className="muted small">{formatPrice(Math.round(p.value * 100))}</div>}
                   </td>
-                  <td className="url">{e.page_url ?? "—"}</td>
+                  <td className="url" title={e.page_url ?? undefined}>{e.page_url ? pathOf(e.page_url) : "none"}</td>
                   <td><code title={e.user_id}>{short(e.user_id)}</code></td>
                   <td><code title={e.tab_id ?? ""}>{short(e.tab_id)}</code></td>
                   <td><code title={e.event_id}>{e.event_id.length > 14 ? `${e.event_id.slice(0, 14)}…` : e.event_id}</code></td>
@@ -91,6 +100,6 @@ export default function EventDebugger({ refreshKey }: { refreshKey: number }) {
         Every event as received, newest first. Crawler traffic is stored but hidden by default. Source comes from the tab's ad visit, so pages without UTMs still show the ad
         that brought the user in. Server events have no tab, so no source.
       </p>
-    </section>
+    </div>
   );
 }

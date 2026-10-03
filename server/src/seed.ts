@@ -1,5 +1,5 @@
 /**
- * Generates 30 days of realistic traffic through the real ingestion service.
+ * Generates 60 days of realistic traffic through the real ingestion service.
  *   npm run seed            (from the repo root: wipes data first)
  *
  * The journeys are designed so the attribution models disagree, which is the
@@ -23,7 +23,8 @@ const SHOP = "http://localhost:5180";
 const COURSES = PRODUCTS; // includes the All-Access plan
 const ADV = "adv_kernelcraft";
 const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36";
-const DAYS = 30;
+const DAYS = 60; // two 30-day windows, so the dashboard can compare against the previous period
+const SCALE = DAYS / 30; // the PLAN volumes below are per 30 days
 
 type Src = "google" | "koah" | "facebook";
 const PLAN: Record<Src | "direct", { visitors: number; view: number; cart: number; campaigns: string[] }> = {
@@ -44,7 +45,7 @@ const DAY = 24 * 60 * MIN;
 
 /** Start time with a gentle upward trend (more traffic in recent days), during waking hours. */
 function startTime(): number {
-  const dayOffset = Math.floor(DAYS * Math.sqrt(rand())); // skews toward recent
+  const dayOffset = Math.floor(DAYS * rand() ** 0.8); // skews toward recent
   const d = new Date(Date.now() - (DAYS - 1 - dayOffset) * DAY);
   d.setHours(8 + Math.floor(rand() * 14), Math.floor(rand() * 60), 0, 0);
   return Math.min(d.getTime(), Date.now() - 30 * MIN);
@@ -114,7 +115,7 @@ async function main() {
   const journeys: Journey[] = [];
 
   for (const source of ["google", "koah", "facebook"] as Src[]) {
-    for (let i = 0; i < PLAN[source].visitors; i++) {
+    for (let i = 0; i < PLAN[source].visitors * SCALE; i++) {
       const j = new Journey(randomUUID(), startTime());
       const bought = j.tab(adTouch(source)).browse(PLAN[source]);
       if (!bought && rand() < P_RETURN_DIRECT) {
@@ -129,7 +130,7 @@ async function main() {
       journeys.push(j);
     }
   }
-  for (let i = 0; i < PLAN.direct.visitors; i++) {
+  for (let i = 0; i < PLAN.direct.visitors * SCALE; i++) {
     const j = new Journey(randomUUID(), startTime());
     j.tab(null).browse(PLAN.direct);
     journeys.push(j);

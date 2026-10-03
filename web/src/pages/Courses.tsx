@@ -91,7 +91,14 @@ export default function Courses() {
   const organic = useMemo(() => results.filter((p) => !promos.some((pr) => pr.courseId === p.id)), [results, promos]);
 
   if (error) return <p className="error">Couldn't load courses ({error}).</p>;
-  if (!catalog) return <p className="muted">Loading…</p>;
+  if (!catalog) return (
+    <div className="listing" aria-busy="true" aria-label="Loading courses">
+      <div className="skel skel-line" style={{ width: "30%", height: 36, margin: "24px 0" }} />
+      <div className="rlist">
+        {Array.from({ length: 5 }, (_, i) => <div key={i} className="skel skel-card" style={{ height: 150 }} />)}
+      </div>
+    </div>
+  );
 
   const toggle = (g: Group, value: string) => {
     const cur = selected[g];
@@ -132,7 +139,7 @@ export default function Courses() {
   const sponsored = (i: number, placement: string) => {
     const promo = promos[i];
     const product = promo && promoProduct(promo, catalog.products);
-    return product ? <SponsoredCard promo={promo} product={product} placement={placement} layout={placement === "search_top" ? "banner" : "row"} /> : null;
+    return product ? <SponsoredCard promo={promo} product={product} placement={placement} layout={placement === "search_top" ? "banner" : "grid"} /> : null;
   };
 
   return (
@@ -182,10 +189,10 @@ export default function Courses() {
               <Link to={clearHref}>Clear filters</Link>
             </div>
           ) : (
-            <div className="rlist">
+            <div className="cgrid">
               {organic.map((p, i) => (
                 <Fragment key={p.id}>
-                  <CourseCard product={p} layout="row" />
+                  <CourseCard product={p} layout="grid" />
                   {i === MID_SLOT_AFTER && sponsored(1, "search_mid")}
                 </Fragment>
               ))}

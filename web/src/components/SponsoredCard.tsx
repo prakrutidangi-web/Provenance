@@ -15,7 +15,7 @@ export default function SponsoredCard({ promo, product, placement, layout = "car
   promo: Promo;
   product: Product;
   placement: string; // where on the site the slot is, e.g. "search_top"
-  layout?: "card" | "row" | "banner";
+  layout?: "card" | "row" | "banner" | "grid";
 }) {
   const location = useLocation();
   const params = { promo_id: promo.id, placement, content_ids: [product.id], content_name: product.name };
@@ -46,6 +46,29 @@ export default function SponsoredCard({ promo, product, placement, layout = "car
             <Price product={product} />
           </span>
         </div>
+      </Link>
+    );
+  }
+
+  if (layout === "grid") {
+    return (
+      <Link
+        to={`/courses/${product.id}`}
+        className="gcard sponsored-slot"
+        data-testid={`sponsored-${placement}`}
+        data-course={product.id}
+        onClick={() => window.kad("track", "PromoClick", params)}
+      >
+        <div className="gcard-art">
+          <CourseCover product={product} />
+          <span className="gcard-chip gcard-chip-sponsored">Sponsored</span>
+        </div>
+        <span className="gcard-meta">{product.level} · {formatDuration(product.durationMin)} · {product.lessons} lessons</span>
+        <span className="gcard-title">{product.name}</span>
+        <span className="gcard-foot">
+          <span className="gcard-by">{product.instructor.name}</span>
+          <Price product={product} />
+        </span>
       </Link>
     );
   }

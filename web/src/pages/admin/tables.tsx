@@ -1,7 +1,9 @@
 import { formatPrice, type CampaignRow, type ConversionRow, type FunnelData, type SummaryRow } from "../../api";
 
+/** Rates from fewer sessions than this are noise, so the table says so. */
+export const LOW_VOLUME = 20;
 export const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
-export const short = (id: string | null) => (id ? id.slice(0, 8) : "—");
+export const short = (id: string | null) => (id ? id.slice(0, 8) : "none");
 
 const SOURCE_NAMES: Record<string, string> = { google: "Google", facebook: "Facebook", koah: "Koah", direct: "Direct" };
 
@@ -15,6 +17,7 @@ export function SourceBadge({ source }: { source: string | null }) {
 export function SummaryTable({ rows }: { rows: SummaryRow[] }) {
   const maxRate = Math.max(...rows.map((r) => r.conversion_rate), 0.0001);
   return (
+    <div className="scroll" tabIndex={0} role="region" aria-label="Scrollable table">
     <table className="table" data-testid="metrics">
       <thead>
         <tr>
@@ -36,6 +39,7 @@ export function SummaryTable({ rows }: { rows: SummaryRow[] }) {
               <div className="rate">
                 <span data-col="rate">{pct(m.conversion_rate)}</span>
                 <div className="bar"><div className={`s-${m.source}`} style={{ width: `${(m.conversion_rate / maxRate) * 100}%` }} /></div>
+                {m.sessions < LOW_VOLUME && <span className="low-volume" title={`Fewer than ${LOW_VOLUME} sessions, so this rate can swing a lot`}>low volume</span>}
               </div>
             </td>
             <td className="num">{m.orders}</td>
@@ -44,6 +48,7 @@ export function SummaryTable({ rows }: { rows: SummaryRow[] }) {
         ))}
       </tbody>
     </table>
+    </div>
   );
 }
 
@@ -52,7 +57,7 @@ export function FunnelTable({ data }: { data: FunnelData | null }) {
   if (!data) return null;
   const label = (s: string) => s.replace(/([a-z])([A-Z])/g, "$1 $2");
   return (
-    <div className="scroll">
+    <div className="scroll" tabIndex={0} role="region" aria-label="Scrollable table">
       <table className="table compact funnel">
         <thead>
           <tr>
@@ -82,9 +87,9 @@ export function FunnelTable({ data }: { data: FunnelData | null }) {
 }
 
 export function CampaignTable({ rows }: { rows: CampaignRow[] }) {
-  if (rows.length === 0) return <p className="muted small">No campaign traffic in this range.</p>;
+  if (rows.length === 0) return <p className="panel-empty">No campaign traffic in this range.</p>;
   return (
-    <div className="scroll">
+    <div className="scroll" tabIndex={0} role="region" aria-label="Scrollable table">
       <table className="table compact">
         <thead>
           <tr>
@@ -115,9 +120,9 @@ export function CampaignTable({ rows }: { rows: CampaignRow[] }) {
 
 /** Deduplicated conversions: shows each purchase once, which channels reported it, and who got credit. */
 export function ConversionsTable({ rows }: { rows: ConversionRow[] }) {
-  if (rows.length === 0) return <p className="muted small">No conversions in this range yet.</p>;
+  if (rows.length === 0) return <p className="panel-empty">No conversions in this range yet.</p>;
   return (
-    <div className="scroll tall">
+    <div className="scroll tall" tabIndex={0} role="region" aria-label="Scrollable table">
       <table className="table compact" data-testid="conversions">
         <thead>
           <tr>
@@ -135,14 +140,14 @@ export function ConversionsTable({ rows }: { rows: ConversionRow[] }) {
             <tr key={c.event_id}>
               <td className="nowrap">{new Date(c.occurred_at).toLocaleString()}</td>
               <td><code>{c.order_id ?? short(c.event_id)}</code></td>
-              <td>{c.products?.map((p) => `${p.name ?? p.id}${p.quantity && p.quantity > 1 ? ` ×${p.quantity}` : ""}`).join(", ") ?? "—"}</td>
-              <td className="num">{c.value_cents !== null ? formatPrice(c.value_cents) : "—"}</td>
+              <td>{c.products?.map((p) => `${p.name ?? p.id}${p.quantity && p.quantity > 1 ? ` ×${p.quantity}` : ""}`).join(", ") ?? "none"}</td>
+              <td className="num">{c.value_cents !== null ? formatPrice(c.value_cents) : "none"}</td>
               <td>
                 {c.received_via.map((v) => <span key={v} className={`chip chip-${v}`}>{v}</span>)}
                 {c.received_via.length === 2 && <span className="muted small"> merged</span>}
               </td>
               <td><SourceBadge source={c.source} /></td>
-              <td>{c.campaign ? <code>{c.campaign}</code> : "—"}</td>
+              <td>{c.campaign ? <code>{c.campaign}</code> : "none"}</td>
             </tr>
           ))}
         </tbody>

@@ -319,7 +319,7 @@ export const TOPICS: Topic[] = [
 ];
 
 export const FALLBACK: Block[] = [
-  { p: "Good question. Could you tell me a bit more about your stack and what you've tried so far? That'll help me give you a concrete answer rather than a generic one." },
+  { p: "Good question. Could you tell me a bit more about your stack and what you've tried so far? That'll help me give you a concrete answer." },
 ];
 
 /**

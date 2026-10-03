@@ -134,7 +134,7 @@ function SponsoredCard({ turn, product }: { turn: Turn; product: Product }) {
 const DRAFT = "draft-0";
 let chatSeq = 0;
 
-export default function Chat() {
+export default function Chat({ embedded = false }: { embedded?: boolean }) {
   const { catalog } = useCatalog();
   const [params, setParams] = useSearchParams();
   const [chats, setChats] = useState<ChatThread[]>(() => [
@@ -153,6 +153,7 @@ export default function Chat() {
   const active = chats.find((c) => c.id === activeId) ?? chats[0];
 
   useEffect(() => {
+    if (embedded) return;
     document.title = "Penrose";
     return () => {
       document.title = "Kernelcraft";
@@ -200,7 +201,7 @@ export default function Chat() {
   // /chat?ask=… (used by the dashboard's "simulate an ad click") asks once on arrival.
   useEffect(() => {
     const q = params.get("ask");
-    if (!q || autoAsked.current) return;
+    if (embedded || !q || autoAsked.current) return;
     autoAsked.current = true;
     setParams({}, { replace: true });
     ask(q);
@@ -255,19 +256,7 @@ export default function Chat() {
   }
 
   return (
-    <div className="penrose">
-      <div className="demo-bar">
-        <ol className="demo-steps">
-          <li><b>Demo publisher.</b> Penrose is a fictional AI app.</li>
-          <li><span>1</span> Ask a question</li>
-          <li><span>2</span> Click the Sponsored card. Kernelcraft opens in a new tab as a Koah visitor</li>
-          <li><span>3</span> Buy a course there, then check the dashboard</li>
-        </ol>
-        <span className="demo-links">
-          <a href="/" target="_blank" rel="noopener">Kernelcraft <ArrowSquareOut size={12} aria-hidden /></a>
-          <a href="/admin" target="_blank" rel="noopener">Dashboard <ArrowSquareOut size={12} aria-hidden /></a>
-        </span>
-      </div>
+    <div className={embedded ? "penrose is-embedded" : "penrose"}>
       <div className="penrose-app">
         <aside className="penrose-side">
           <div className="penrose-logo"><span className="penrose-mark" /> Penrose</div>
@@ -352,7 +341,7 @@ export default function Chat() {
               <button type="submit" disabled={!input.trim()} aria-label="Send message"><ArrowUp size={17} weight="bold" aria-hidden /></button>
             )}
           </form>
-          <p className="composer-note">Penrose is a demo and its answers are canned. Try “how do I evaluate my LLM app” or “kafka consumers keep falling behind”.</p>
+          <p className="composer-note">Penrose gives short, general answers. Sponsored cards are ads and are always labeled.</p>
         </main>
       </div>
     </div>

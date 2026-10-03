@@ -127,7 +127,7 @@ analyticsRouter.get("/api/analytics/funnel", async (req, res) => {
   });
 });
 
-/** Daily sessions and purchasers per source, bucketed in the viewer's time zone. */
+/** Daily sessions, purchasers and revenue per source, bucketed in the viewer's time zone. */
 analyticsRouter.get("/api/analytics/timeseries", async (req, res) => {
   const r = parseRange(req);
   const { rows } = await pool.query(
@@ -140,9 +140,11 @@ analyticsRouter.get("/api/analytics/timeseries", async (req, res) => {
           s AS (SELECT (occurred_at AT TIME ZONE $4)::date AS day, COALESCE(source, 'direct') AS source,
                        COUNT(DISTINCT user_id) AS sessions FROM visits GROUP BY 1, 2),
           c AS (SELECT (occurred_at AT TIME ZONE $4)::date AS day, COALESCE(source, 'direct') AS source,
-                       COUNT(DISTINCT user_id) AS purchasers FROM attributed GROUP BY 1, 2)
+                       COUNT(DISTINCT user_id) AS purchasers,
+                       COALESCE(SUM(value_cents), 0) AS revenue_cents FROM attributed GROUP BY 1, 2)
      SELECT to_char(d.day, 'YYYY-MM-DD') AS day, src.source,
-            COALESCE(s.sessions, 0) AS sessions, COALESCE(c.purchasers, 0) AS purchasers
+            COALESCE(s.sessions, 0) AS sessions, COALESCE(c.purchasers, 0) AS purchasers,
+            COALESCE(c.revenue_cents, 0)::int AS revenue_cents
        FROM days d
       CROSS JOIN (SELECT unnest($5::text[]) AS source) src
        LEFT JOIN s ON s.day = d.day AND s.source = src.source
@@ -175,6 +177,7 @@ analyticsRouter.get("/api/events", async (req, res) => {
       via: z.enum(["pixel", "api"]).optional(),
       name: z.string().max(40).optional(),
       source: z.string().max(40).optional(),
+      tab: z.string().max(80).optional(),
       limit: z.coerce.number().int().min(1).max(1000).default(200),
     })
     .parse(req.query);
@@ -187,6 +190,7 @@ analyticsRouter.get("/api/events", async (req, res) => {
   };
   if (q.via) add("e.via = ?", q.via);
   if (q.name) add("e.event_name = ?", q.name);
+  if (q.tab) add("e.tab_id = ?", q.tab);
   if (q.source === "direct") where.push("t.source IS NULL");
   else if (q.source) add("t.source = ?", q.source);
   args.push(q.limit);

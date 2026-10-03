@@ -1,13 +1,34 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
-import { SOURCES, type TimeseriesRow } from "../../api";
+import { SOURCES, formatPrice, type TimeseriesRow } from "../../api";
 
 const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 
-type Metric = "sessions" | "purchasers";
-const METRIC_LABEL: Record<Metric, string> = { sessions: "User sessions", purchasers: "Purchasers" };
+export type Metric = "sessions" | "purchasers" | "rate" | "revenue";
+export const METRIC_LABEL: Record<Metric, string> = { sessions: "User sessions", purchasers: "Purchasers", rate: "Conversion rate", revenue: "Revenue" };
+
+const ROLLING_DAYS = 7;
+
+/**
+ * One day's value for a source. A single day's conversion rate swings wildly on a few sessions
+ * (1 purchase from 1 session is 100%), so the rate line is a rolling 7-day rate: purchasers over sessions
+ * across the trailing week.
+ */
+function valueAt(rows: (TimeseriesRow | undefined)[], i: number, metric: Metric): number {
+  const row = rows[i];
+  if (metric === "rate") {
+    const win = rows.slice(Math.max(0, i - ROLLING_DAYS + 1), i + 1);
+    const sessions = win.reduce((n, r) => n + (r?.sessions ?? 0), 0);
+    const purchasers = win.reduce((n, r) => n + (r?.purchasers ?? 0), 0);
+    return sessions > 0 ? (purchasers / sessions) * 100 : 0;
+  }
+  if (!row) return 0;
+  return metric === "revenue" ? row.revenue_cents / 100 : row[metric];
+}
+const fmt = (v: number, metric: Metric) =>
+  metric === "rate" ? `${v.toFixed(Number.isInteger(v) ? 0 : 1)}%` : metric === "revenue" ? formatPrice(Math.round(v * 100)).replace(/\.00$/, "") : String(v);
 
 const H = 260;
-const M = { top: 16, right: 84, bottom: 28, left: 40 }; // right margin holds the direct labels
+const M = { top: 16, right: 96, bottom: 28, left: 40 }; // right margin holds the direct labels
 
 /** Picks a round tick step (1, 2, 5 × 10^n) so ~4 gridlines land on round values. */
 function niceScale(max: number): { yMax: number; ticks: number[] } {
@@ -22,8 +43,7 @@ function niceScale(max: number): { yMax: number; ticks: number[] } {
 const shortDay = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
 /** Daily line chart, one line per source. One metric at a time: never two y-axes. */
-export default function TrendChart({ data }: { data: TimeseriesRow[] }) {
-  const [metric, setMetric] = useState<Metric>("sessions");
+export default function TrendChart({ data, metric }: { data: TimeseriesRow[]; metric: Metric }) {
   const [view, setView] = useState<"chart" | "table">("chart");
   const [hover, setHover] = useState<number | null>(null);
   const wrap = useRef<HTMLDivElement>(null);
@@ -42,7 +62,10 @@ export default function TrendChart({ data }: { data: TimeseriesRow[] }) {
     () =>
       SOURCES.map((source) => ({
         source,
-        values: days.map((day) => data.find((d) => d.day === day && d.source === source)?.[metric] ?? 0),
+        values: (() => {
+          const rows = days.map((day) => data.find((d) => d.day === day && d.source === source));
+          return rows.map((_, i) => valueAt(rows, i, metric));
+        })(),
       })),
     [data, days, metric],
   );
@@ -69,13 +92,8 @@ export default function TrendChart({ data }: { data: TimeseriesRow[] }) {
   return (
     <section className="panel">
       <div className="panel-head">
-        <h2>Daily trend</h2>
+        <h2>{metric === "rate" ? "Conversion rate, rolling 7 days" : `${METRIC_LABEL[metric]} per day`}</h2>
         <div className="controls">
-          <div className="segmented" role="group" aria-label="Metric">
-            {(Object.keys(METRIC_LABEL) as Metric[]).map((m) => (
-              <button key={m} className={metric === m ? "on" : ""} onClick={() => setMetric(m)}>{METRIC_LABEL[m]}</button>
-            ))}
-          </div>
           <div className="segmented" role="group" aria-label="View">
             {(["chart", "table"] as const).map((v) => (
               <button key={v} className={view === v ? "on" : ""} onClick={() => setView(v)}>{v === "chart" ? "Chart" : "Table"}</button>
@@ -92,7 +110,7 @@ export default function TrendChart({ data }: { data: TimeseriesRow[] }) {
       </div>
 
       {view === "table" ? (
-        <div className="scroll">
+        <div className="scroll" tabIndex={0} role="region" aria-label="Scrollable table">
           <table className="table compact">
             <thead>
               <tr><th>Day</th>{SOURCES.map((s) => <th key={s} className="num">{cap(s)}</th>)}</tr>
@@ -101,7 +119,7 @@ export default function TrendChart({ data }: { data: TimeseriesRow[] }) {
               {days.map((day, i) => (
                 <tr key={day}>
                   <td>{shortDay(day)}</td>
-                  {series.map((s) => <td key={s.source} className="num">{s.values[i]}</td>)}
+                  {series.map((s) => <td key={s.source} className="num">{fmt(s.values[i], metric)}</td>)}
                 </tr>
               ))}
             </tbody>
@@ -113,7 +131,7 @@ export default function TrendChart({ data }: { data: TimeseriesRow[] }) {
             {ticks.map((t) => (
               <g key={t}>
                 <line className="grid" x1={M.left} x2={M.left + innerW} y1={y(t)} y2={y(t)} />
-                <text className="axis" x={M.left - 8} y={y(t)} dy="0.32em" textAnchor="end">{t}</text>
+                <text className="axis" x={M.left - 8} y={y(t)} dy="0.32em" textAnchor="end">{fmt(t, metric)}</text>
               </g>
             ))}
             {days.map((d, i) =>
@@ -132,7 +150,7 @@ export default function TrendChart({ data }: { data: TimeseriesRow[] }) {
 
             {endLabels.map((l) => (
               <text key={l.source} className="direct-label" x={M.left + innerW + 8} y={l.y} dy="0.32em">
-                <tspan className="dl-value">{l.v}</tspan> {cap(l.source)}
+                <tspan className="dl-value">{fmt(l.v, metric)}</tspan> {cap(l.source)}
               </text>
             ))}
 
@@ -168,7 +186,7 @@ export default function TrendChart({ data }: { data: TimeseriesRow[] }) {
                   <div key={s.source} className="tt-row">
                     <i className={`swatch line s-${s.source}`} />
                     <span>{cap(s.source)}</span>
-                    <span className="num">{s.values[hover]}</span>
+                    <span className="num">{fmt(s.values[hover], metric)}</span>
                   </div>
                 ))}
             </div>

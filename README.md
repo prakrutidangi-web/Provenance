@@ -36,13 +36,13 @@ npm run dev        # pixel watcher + API (:4180) + web (:5180)
 | Kernelcraft with the pixel's debug log in the console | add `&kad_debug=1` to any URL |
 | Dashboard | http://localhost:5180/admin |
 
-Run `npm run seed` to generate 30 days of realistic traffic (about 740 users). It wipes existing data first. Run `npm run db:reset` to drop the database volume and start fresh.
+Run `npm run seed` to generate 60 days of realistic traffic (about 1,500 users), so the dashboard can compare each 30-day window with the one before. It wipes existing data first. Run `npm run db:reset` to drop the database volume and start fresh.
 
 ### Tests
 
 ```bash
 npx playwright install chromium   # first time only
-npm test                          # 20 server tests (unit + integration on real Postgres) + 17 browser tests (attribution flows, every ad opening the right course, and the catalog filters)
+npm test                          # 20 server tests (unit + integration on real Postgres) + 26 browser tests (attribution flows, every ad opening the right course, the catalog filters, legal pages and keyboard focus)
 ```
 
 ---
@@ -65,7 +65,9 @@ Dashboard ◄── /api/analytics/* ◄── attribution engine (query-time: s
 
 ## Design
 
-- **Visual system:** matches Koah's own site (koahlabs.com): a warm cream canvas (`#faf8f5`), deep navy text (`#1c2a51`), a yellow primary pill (`#f8d870`) and a navy secondary pill, light display headings with an italic serif accent (Instrument Serif, standing in for Koah's bureauSerif), and white cards with a soft shadow. The layout follows Coursera and Udemy: promo banners, "New and popular" lists, category tiles, a filter sidebar and a full-width page. Saturated color is reserved for the posters and the per-platform chart colors (google blue, koah orange, facebook green, direct amber). All tokens live at the top of `web/src/styles.css`.
+- **Visual system:** matches Koah's own site (koahlabs.com) while following a stricter brief. A warm cream page (`#faf8f5`, no pure white), navy text (`#1c2a51`) and one accent, Koah yellow (`#f8d870`), used only for the main action and anything sponsored. Instrument Sans for text and Instrument Serif for italic display accents, both bundled with the app. Corners are 2 to 4px, with pills only on buttons. Depth comes from 1px borders, with no shadows. The course posters are the main visual. The dashboard's four series colors stay distinct because charts need them. Tokens and the final visual layer are in `web/src/design.css`; `web/src/styles.css` holds the older base rules.
+- **Accessibility:** an axe-core WCAG A and AA scan of the home, catalog, course, pricing, checkout, legal, chat and dashboard pages reports no violations. Focus rings are visible, inputs have labels, and motion respects `prefers-reduced-motion`.
+- **Legal pages:** `/terms` and `/privacy` describe what the demo really does. Missing details (operator, governing law, retention, contact) are marked Draft and need review before any real use.
 - **Course posters:** illustrated per course by `web/scripts/posters.mjs`. Each is a topic metaphor in its track's colors, written as SVG and rendered to JPEG with headless Chromium. Regenerate with `npm --prefix web run posters`.
 - **Photos:** Unsplash, credited in the footer. Web-sized copies are in `web/public/images`; the originals are in `photos-original/`.
 - **Interface rules:** checked against Vercel's web-interface guidelines (focus states, labels, reduced motion, typography, URL state).
@@ -114,6 +116,16 @@ curl -s localhost:4180/api/v1/conversion_events \
 ```
 
 ---
+
+## Questions a reviewer might ask
+
+**Is Kernelcraft a real store?** No. It is a practice store. Courses, instructors and prices are made up, nothing is sold, and no payment is taken. Placing an order saves a record in the local database so a purchase can be attributed.
+
+**What is Penrose?** A fictional AI assistant for engineers. Its answers are pre-written. The sponsored card under an answer is a Koah-style ad that links back to a Kernelcraft course with `utm_source=koah` and a click id.
+
+**What does the site store about a visitor?** A random visitor ID in a first-party cookie, the ad parameters from the landing URL, the pages opened and the products viewed. No names, emails or card numbers. The Privacy Policy lists it all. The dashboard's event debugger shows the raw events.
+
+**Where is the dashboard?** `/admin`. It is deliberately not linked from the store.
 
 ## Demo script (for the video)
 

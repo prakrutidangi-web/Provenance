@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Check } from "@phosphor-icons/react";
 import { useCatalog, formatPrice } from "../catalog";
 import { cart } from "../cart";
 import { trackOnce } from "../trackOnce";
@@ -16,7 +15,7 @@ export default function Pricing() {
     if (plan) trackOnce(location.key, "ViewContent", productParams(plan));
   }, [plan, location.key]);
 
-  if (!catalog || !plan) return <p className="muted">Loading…</p>;
+  if (!catalog || !plan) return <div aria-busy="true" aria-label="Loading pricing" className="plans" style={{ marginTop: 48 }}><div className="skel skel-card" style={{ height: 320 }} /><div className="skel skel-card" style={{ height: 320 }} /></div>;
   const courses = catalog.products.filter((p) => p.kind === "course");
   const cheapest = Math.min(...courses.map((c) => c.priceCents));
 
@@ -39,9 +38,9 @@ export default function Pricing() {
           <p className="plan-price">from {formatPrice(cheapest)}</p>
           <p className="muted">One-time purchase</p>
           <ul>
-            <li><Check size={16} weight="bold" aria-hidden /> Lifetime access to that course</li>
-            <li><Check size={16} weight="bold" aria-hidden /> All future updates to it</li>
-            <li><Check size={16} weight="bold" aria-hidden /> Source code and certificate</li>
+            <li>Lifetime access to that course</li>
+            <li>All future updates to it</li>
+            <li>Source code and certificate</li>
           </ul>
           <Link to="/courses" className="btn btn-quiet btn-block">Browse courses</Link>
         </div>
@@ -51,15 +50,14 @@ export default function Pricing() {
           <p className="plan-price">{formatPrice(plan.priceCents)}<span>/year</span></p>
           <p className="muted">Bought separately: <s>{formatPrice(plan.compareAtCents!)}</s></p>
           <ul>
-            <li><Check size={16} weight="bold" aria-hidden /> All {courses.length} courses, plus every new release</li>
-            <li><Check size={16} weight="bold" aria-hidden /> Downloadable source code and slides</li>
-            <li><Check size={16} weight="bold" aria-hidden /> Certificates of completion</li>
-            <li><Check size={16} weight="bold" aria-hidden /> Cancel anytime</li>
+            <li>All {courses.length} courses, plus every new release</li>
+            <li>Downloadable source code and slides</li>
+            <li>Certificates of completion</li>
           </ul>
-          <button className="btn btn-block" onClick={getPlan} data-testid="get-all-access">Get All-Access</button>
+          <button className="btn btn-sun btn-block" onClick={getPlan} data-testid="get-all-access">Get All-Access</button>
         </div>
       </div>
-      <p className="muted small center">Prices in USD. Every purchase can be refunded within 30 days.</p>
+      <p className="muted small center">Prices in USD. This is a practice store, so nothing is charged.</p>
     </div>
   );
 }
