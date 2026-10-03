@@ -1,5 +1,5 @@
 # Provenance: UTM conversion attribution
-
+Submission by Prakruti Dangi
 Provenance measures, independently of the ad platforms, how well each platform's ads convert. For Google, Koah and Facebook (plus direct visits) it answers three questions:
 
 - **User sessions:** how many unique users arrived through that platform's ads.
