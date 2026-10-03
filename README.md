@@ -117,26 +117,7 @@ curl -s localhost:4180/api/v1/conversion_events \
 
 ---
 
-## Questions a reviewer might ask
-
-**Is Kernelcraft a real store?** No. It is a practice store. Courses, instructors and prices are made up, nothing is sold, and no payment is taken. Placing an order saves a record in the local database so a purchase can be attributed.
-
-**What is Penrose?** A fictional AI assistant for engineers. Its answers are pre-written. The sponsored card under an answer is a Koah-style ad that links back to a Kernelcraft course with `utm_source=koah` and a click id.
-
-**What does the site store about a visitor?** A random visitor ID in a first-party cookie, the ad parameters from the landing URL, the pages opened and the products viewed. No names, emails or card numbers. The Privacy Policy lists it all. The dashboard's event debugger shows the raw events.
-
-**Where is the dashboard?** `/admin`. It is deliberately not linked from the store.
-
-## Demo script (for the video)
-
-1. Open **/chat** (Penrose). Point out the "Sponsored" card under the answer: it's matched to the question. Ask about something else, such as "how do I evaluate my LLM app", and the ad changes. Ask something unrelated and no ad appears.
-2. Click **View course**. Kernelcraft opens in a new tab with `utm_source=koah&kad_cid=…` in the URL.
-3. Browse to another course (the URL no longer has UTMs), add to cart and check out.
-4. Open **/admin**. Koah shows the session and the purchase, and the conversion row says **api + pixel, merged**.
-5. Switch attribution models to show how credit moves between platforms.
-6. On the dashboard, under **Simulate an ad click**, click **Facebook: React Native**. It lands on that course with `utm_source=facebook`. Open **Explore**: the top result is a **Sponsored** listing. Click it and buy: the sale still goes to facebook, and the debugger shows a `PromoClick`.
-
-### Where the ads are, and where they lead
+## Where the ads are, and where they lead
 
 | Ad | Where you see it | Lands on | Attribution |
 |---|---|---|---|
@@ -146,36 +127,3 @@ curl -s localhost:4180/api/v1/conversion_events \
 | In-store "Sponsored" listing | home (category tabs), catalog and search results, course pages | the promoted course | none on purpose (see below) |
 
 In-store sponsored listings are internal promotions, so their links carry **no UTMs**. Putting UTMs on internal links would overwrite the tab's real source and steal the sale from the ad that actually brought the user in. They report `PromoView` and `PromoClick` events instead (`web/src/ads.ts`), and `e2e/ads.spec.ts` checks that every ad opens the right course with the right attribution.
-
-## Notes for the video
-
-**1. Backend design for recording page views and purchases**
-
-There are two channels into one write path.
-
-- **The pixel** queues events in a sessionStorage outbox and sends them in batches to `/kad/e`, with retries and `sendBeacon` when the page closes.
-- **Kernelcraft's server** sends a server-side Purchase when it creates the order.
-- **`ingest()` handles both.** It validates each event (partial success), appends it to `raw_events` idempotently by `(channel, event_id)`, records the ad touch, and upserts purchases into `conversions`.
-- **Deduplication.** The pixel and server copies of a purchase share an `event_id` and merge into one row. The pixel contributes the tab's ad touch; the server contributes the trusted price.
-- **Metrics** are computed at query time by the attribution engine.
-
-**2. Fields stored per event, and what else would help**
-
-- **Stored:** `event_name`, `event_id`, `via`, `user_id`, `tab_id`, `touch_id`, `page_url`, `referrer`, `user_agent`, `is_bot`, `properties` (value, currency, products, order_id), and a clock-corrected `occurred_at` plus `received_at`.
-- **Each touch also stores:** source (normalized and raw), medium, campaign, content, click ID and landing URL.
-- **Useful in a real system:** consent state, IP-derived geo, device type, hashed email for cross-device matching and platform conversion APIs, ad spend for ROAS, and an impression or view-through ID.
-
-**3. Tracking one user across pages**
-
-- **The user** is identified by a server-set **HTTP-only first-party cookie** (`koah_uid`), as Koah's docs recommend. It survives Safari's ITP, can't be tampered with, and the server sees it on checkout too, so the browser and server copies of an event agree on who the user is. It's set on the HTML response, which fixed an identity race found in testing.
-- **Attribution** lives in **sessionStorage**, which is scoped to exactly one tab, matching the requirement. Every event from the tab carries the touch, so a purchase page without UTMs still knows its ad.
-
-**4. Additional attribution features for a real system**
-
-- Click-ID round-trip to Koah's bidder
-- Multi-touch and view-through models
-- Cross-device identity
-- Ad spend import for ROAS
-- Fraud signals
-- Consent mode
-- At scale: Kafka → ClickHouse with incremental attribution (see DESIGN.md §11)
